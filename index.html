@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Klasifikasi Jenis Mangrove</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/brython@3.9.5/brython.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/brython@3.9.5/brython_stdlib.js"></script>
+    <style>
+        :root {
+            --primary: #2E7D32;
+            --secondary: #E8F5E9;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: var(--secondary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            width: 90%;
+            max-width: 600px;
+        }
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .input-group {
+            margin: 1rem 0;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #C8E6C9;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        #result {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 5px;
+            background: #F1F8E9;
+        }
+    </style>
+</head>
+<body onload="brython()">
+    <div class="container">
+        <h1>🌿 Klasifikasi Jenis Mangrove</h1>
+        
+        <div class="input-group">
+            <input type="number" step="0.01" id="ndvi" placeholder="NDVI (-1 sampai 1)">
+            <input type="number" step="0.1" id="canopy" placeholder="Tinggi Kanopi (meter)">
+            <input type="number" step="0.1" id="leaf" placeholder="Panjang Daun (cm)">
+            <input type="number" step="0.1" id="trunk" placeholder="Diameter Batang (cm)">
+        </div>
+        
+        <button id="classifyBtn">Identifikasi Jenis</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script type="text/python">
+from browser import document
+import math
+
+# Dataset sintetis berdasarkan penelitian mangrove
+mangrove_data = [
+    # Avicennia marina
+    [0.65, 8.5, 12.0, 15.0], [0.68, 9.0, 11.5, 14.5], [0.63, 7.8, 13.0, 16.0],
+    
+    # Rhizophora apiculata
+    [0.72, 10.5, 18.0, 25.0], [0.75, 11.0, 17.5, 24.5], [0.70, 9.8, 19.0, 26.0],
+    
+    # Sonneratia alba
+    [0.55, 6.5, 8.0, 30.0], [0.58, 7.0, 8.5, 32.0], [0.53, 6.0, 7.5, 28.0],
+    
+    # Bruguiera gymnorhiza
+    [0.60, 5.5, 15.0, 20.0], [0.62, 6.0, 14.5, 21.0], [0.58, 5.0, 16.0, 19.0]
+]
+
+mangrove_labels = (
+    ["Avicennia marina"]*3 + 
+    ["Rhizophora apiculata"]*3 + 
+    ["Sonneratia alba"]*3 + 
+    ["Bruguiera gymnorhiza"]*3
+)
+
+def euclidean_distance(a, b):
+    return math.sqrt(sum((x-y)**2 for x,y in zip(a,b)))
+
+def knn_predict(new_data, k=3):
+    distances = []
+    for features, label in zip(mangrove_data, mangrove_labels):
+        distance = euclidean_distance(new_data, features)
+        distances.append((distance, label))
+    
+    distances.sort(key=lambda x: x[0])
+    neighbors = distances[:k]
+    
+    votes = {}
+    for _, label in neighbors:
+        votes[label] = votes.get(label, 0) + 1
+    
+    return max(votes.items(), key=lambda x: x[1])[0]
+
+def run_classification(event):
+    try:
+        features = [
+            float(document["ndvi"].value),
+            float(document["canopy"].value),
+            float(document["leaf"].value),
+            float(document["trunk"].value)
+        ]
+        
+        if any(f < 0 for f in features[:3]):
+            document["result"].text = "Nilai tidak boleh negatif!"
+            return
+            
+        prediction = knn_predict(features)
+        document["result"].text = f"Hasil Identifikasi: {prediction} 🌱"
+        
+    except Exception as e:
+        document["result"].text = f"Error: {str(e)}"
+
+document["classifyBtn"].bind("click", run_classification)
+    </script>
+</body>
+</html>
